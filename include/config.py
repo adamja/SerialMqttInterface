@@ -36,22 +36,22 @@ class Config:
 
     def load_config_file(self):
         if not self.config_file_name:
-            self.log('There was not config file name when initialising the object', logging.ERROR)
+            self.log('[CONFIG]There was not config file name when initialising the object', logging.ERROR)
             return False
 
-        self.log('Attempting to open "{}"'.format(self.config_file_name))
+        self.log('[CONFIG]Attempting to open "{}"'.format(self.config_file_name))
         try:
             with open(self.config_file_name, 'r') as file:
                 data = load(file, Loader=SafeLoader)
         except FileNotFoundError:
-            self.log('No "{}" file was not found'.format(self.config_file_name), logging.WARNING)
+            self.log('[CONFIG]No "{}" file was not found'.format(self.config_file_name), logging.WARNING)
             return False
 
         for key, value in data.items():
             self.fields.append(Field(key, value))
-            self.log('Loaded config item "{}: {}" from "{}"'.format(key, value, self.config_file_name))
+            self.log('[CONFIG]Loaded config item "{}: {}" from "{}"'.format(key, value, self.config_file_name))
 
-        self.log('Finished loading config file "{}"'.format(self.config_file_name))
+        self.log('[CONFIG]Finished loading config file "{}"'.format(self.config_file_name))
         return True
 
 

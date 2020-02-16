@@ -1,5 +1,6 @@
 import logging
 from include.config import Config
+from include.command import Command
 import serial
 from time import sleep
 import paho.mqtt.client as mqtt
@@ -60,6 +61,7 @@ def serial_read():
 def process_serial_data(data):
     STX = config.get('serial_STX')
     ETX = config.get('serial_ETX')
+
     if not data:
         return False
     if not len(data) > 0:
@@ -79,6 +81,13 @@ def process_serial_data(data):
 
         if c == chr(STX):  # Start of command - STX
             start = True
+
+
+def command_loop():
+    command = serial_command_queue.queue[0]
+    mqttc.publish(config.get('mqtt_publish_channel'), command, 0)
+    log('[MQTT] Sent command: {} to channel {}'.format(command, config.get('mqtt_publish_channel')))
+    pass
 
 
 def send_to_serial(msg):
@@ -125,8 +134,11 @@ def on_subscribe(client, userdata, mid, granted_qos):
 def on_message(client, userdata, msg):
     payload = msg.payload.decode('utf-8')
     log('[MQTT] Received command: {} from channel {}'.format(payload, msg.topic))
-    if (len(payload) > 0):
-        mqtt_command_queue.put(payload)
+
+    if len(payload) > 0:
+        max_retry_attempts = config.get('max_retry_attempts')
+        wait_time_seconds = config.get('wait_time_seconds')
+        mqtt_command_queue.put(Command(payload, max_retry_attempts, wait_time_seconds, logger=logger))
 
 
 def connect_mqtt():
@@ -161,14 +173,26 @@ def main():
         try:
             receive_from_serial()
             while not serial_command_queue.empty():
-                command = serial_command_queue.get()
-                mqttc.publish(config.get('mqtt_publish_channel'), command, 0)
-                log('[MQTT] Sent command: {} to channel {}'.format(command, config.get('mqtt_publish_channel')))
+                serial_command = serial_command_queue.get()
 
-            while not mqtt_command_queue.empty():
-                command = mqtt_command_queue.get()
-                send_to_serial(command)
-                log('[SERIAL] Sent command: {}'.format(command))
+                if not mqtt_command_queue.empty():
+                    mqtt_command = mqtt_command_queue.queue[0]
+                    if mqtt_command.success_message(serial_command):
+                        mqtt_command_queue.get()  # remove command from the queue
+                    if mqtt_command.invalid_message(serial_command):
+                        mqtt_command_queue.get()  # remove command from the queue
+
+                mqttc.publish(config.get('mqtt_publish_channel'), serial_command, 0)
+                log('[MQTT] Sent command: {} to channel {}'.format(serial_command, config.get('mqtt_publish_channel')))
+
+            if not mqtt_command_queue.empty():
+                command = mqtt_command_queue.queue[0]
+                if command.attempts_maxed():
+                    mqtt_command_queue.get()  # Dropping command, attempts have been maxed
+                    mqttc.publish(config.get('mqtt_publish_channel'), 'TIMEOUT', 0)
+                elif command.ready_to_send():
+                    send_to_serial(command.send_message())
+                    log('[SERIAL] Sent command: {}'.format(command.message))
 
         except serial.serialutil.SerialException as e:
             logger.exception(e)

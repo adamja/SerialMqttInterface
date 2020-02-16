@@ -3,8 +3,12 @@ serial_baud: 9600
 serial_timeout: 0.5
 serial_STX: 0x02
 serial_ETX: 0x03
+
 mqtt_ip: '10.1.1.30'
 mqtt_port: 1883
 mqtt_timeout: 60
 mqtt_publish_channel: 'home/retic/arduino'
 mqtt_subscribe_channel: 'home/retic/homeassistant'
+
+max_retry_attempts: 5
+wait_time_seconds: 5
