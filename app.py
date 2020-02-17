@@ -9,10 +9,10 @@ import queue
 
 # Logging
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 formatter = logging.Formatter('%(asctime)s:%(name)s:%(levelname)s:%(message)s')
 file_handler = logging.FileHandler('debug.log')
-file_handler.setLevel(logging.DEBUG)
+file_handler.setLevel(logging.INFO)
 file_handler.setFormatter(formatter)
 stream_handler = logging.StreamHandler()
 stream_handler.setLevel(logging.INFO)
@@ -115,7 +115,7 @@ def connect_serial():
             break
         except serial.SerialException as e:
             log(e)
-            log('[SERIAL] Error creating a serial connection. Trying again in 15 seconds')
+            log('[SERIAL] Error creating a serial connection. Trying again in 15 seconds', level=logging.ERROR)
             sleep(15)
     log('[SERIAL] Connected')
 
@@ -159,7 +159,7 @@ def connect_mqtt():
             break
         except Exception as e:
             logger.exception(e)
-            log('[MQTT] Failed to create a connection. Trying again in 5 seconds...')
+            log('[MQTT] Failed to create a connection. Trying again in 5 seconds...', level=logging.ERROR)
             sleep(5)
 
 

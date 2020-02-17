@@ -22,7 +22,7 @@ class Command:
         """ Check if the incoming serial message is 'INVALID' """
         if message == 'INVALID':
             self.success = False
-            self.log('[COMMAND]Invalid command. Dropping command...')
+            self.log('[COMMAND]Invalid command. Dropping command...', level=logging.ERROR)
             return True
         return False
 
@@ -40,7 +40,7 @@ class Command:
         """ Check if the maximum attempts has been reached """
         maxed = self.max_retry_attempts <= self.send_attempts
         if maxed:
-            self.log('[COMMAND]Command attempts have been maxed. Dropping command...')
+            self.log('[COMMAND]Command attempts have been maxed. Dropping command...', level=logging.ERROR)
             return True
         return False
 
