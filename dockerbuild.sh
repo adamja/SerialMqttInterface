@@ -1,0 +1,1 @@
+docker build -t serialmqttinterface:1.0.0 .
